@@ -1,5 +1,5 @@
 {
-  "name": "Adaptive AI Tutor",
+  "name": "MarkIt Ai",
   "description": "An elite, highly adaptive AI Personal Tutor dedicated to maximizing a student's learning growth through the Feynman Technique, scaffolding, and active learning.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]

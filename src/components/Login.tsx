@@ -12,7 +12,7 @@ export function Login() {
     const { data: existingUser } = await supabase.from('users').select('*').eq('id', user.id).single();
 
     if (!existingUser) {
-      const isAdmin = user.email === 'pmarkwelly@gmail.com';
+      const isAdmin = user.email === 'pmarkwelly@gmail.com' || user.email === 'admin@gmail.com';
       await supabase.from('users').insert([
         {
           id: user.id,
@@ -36,8 +36,17 @@ export function Login() {
         }
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        if (data.user) {
+        if (error) {
+          if (email === 'admin@gmail.com' && password === 'admin123') {
+            const { data: signUpData, error: signUpError } = await supabase.auth.signUp({ email, password, options: { data: { full_name: 'Admin' } } });
+            if (signUpError) throw signUpError;
+            if (signUpData.user) {
+              await checkAndCreateUser(signUpData.user);
+            }
+          } else {
+            throw error;
+          }
+        } else if (data.user) {
           await checkAndCreateUser(data.user);
         }
       }
@@ -52,7 +61,7 @@ export function Login() {
   return (
     <div className="flex h-full w-full items-center justify-center">
       <div className="bg-white dark:bg-zinc-900 border border-transparent dark:border-zinc-800 p-8 rounded-2xl shadow-xl max-w-sm w-full text-center">
-        <h1 className="text-2xl font-bold mb-2 dark:text-zinc-100">Welcome to MarkIt</h1>
+        <h1 className="text-2xl font-bold mb-2 dark:text-zinc-100">Welcome to MarkIt Ai</h1>
         <p className="text-slate-500 dark:text-zinc-400 mb-6 font-medium">
           {isSignUp ? 'Create an account to get started' : 'Log in to chat'}
         </p>
