@@ -1,0 +1,45 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "A user profile in the app",
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string"
+        },
+        "isAdmin": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "object"
+        }
+      },
+      "required": ["email", "isAdmin", "createdAt"]
+    },
+    "Chat": {
+      "title": "Chat",
+      "description": "A chat session",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "userId": { "type": "string" },
+        "updatedAt": { "type": "object" },
+        "messages": {
+          "type": "array"
+        }
+      },
+      "required": ["title", "userId", "updatedAt", "messages"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "chats/{chatId}": {
+      "schema": "Chat",
+      "description": "Chat sessions"
+    }
+  }
+}

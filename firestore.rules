@@ -1,0 +1,64 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} { allow read, write: if false; }
+
+    function isSignedIn() { return request.auth != null; }
+    function existing() { return resource.data; }
+    function incoming() { return request.resource.data; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+
+    function isAdmin() {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['email', 'isAdmin', 'createdAt']) &&
+             data.keys().size() == 3 &&
+             data.email is string && data.email.size() <= 128 &&
+             data.isAdmin is bool &&
+             data.createdAt is timestamp;
+    }
+
+    match /users/{userId} {
+      allow get: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      // Admin page needs to list all users
+      allow list: if isAdmin();
+      
+      // Users can be created on first login, they cannot set isAdmin to true unless they are the specific bootstrap admin
+      allow create: if isSignedIn() && request.auth.uid == userId &&
+                    isValidUser(incoming()) && incoming().createdAt == request.time &&
+                    (incoming().isAdmin == false || (incoming().isAdmin == true && request.auth.token.email == "pmarkwelly@gmail.com"));
+      
+      allow update: if isSignedIn() && request.auth.uid == userId &&
+                    isValidUser(incoming()) &&
+                    incoming().createdAt == existing().createdAt &&
+                    incoming().email == existing().email &&
+                    ((incoming().isAdmin == existing().isAdmin) || isAdmin());
+    }
+
+    function isValidChat(data) {
+      return data.keys().hasAll(['title', 'userId', 'updatedAt', 'messages']) &&
+             data.keys().size() == 4 &&
+             data.title is string && data.title.size() <= 200 &&
+             data.userId is string && data.userId.size() <= 128 &&
+             data.updatedAt is timestamp &&
+             data.messages is list;
+    }
+
+    match /chats/{chatId} {
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow delete: if isSignedIn() && isValidId(chatId) && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidId(chatId) && isValidChat(incoming()) &&
+                    incoming().userId == request.auth.uid &&
+                    incoming().updatedAt == request.time;
+      allow update: if isSignedIn() && isValidId(chatId) && isValidChat(incoming()) &&
+                    incoming().userId == existing().userId &&
+                    incoming().updatedAt == request.time &&
+                    (existing().userId == request.auth.uid || isAdmin());
+    }
+  }
+}
